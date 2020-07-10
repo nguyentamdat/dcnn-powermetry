@@ -40,14 +40,6 @@ if __name__ == "__main__":
     y = np.asarray(data[:, 1])
     x = np.array(list(map(lambda z: np.array(z), x)))
     y = np.array(list(map(lambda z: np.array(z), y)))
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
     np.savez_compressed("data/batt_processed.npz", x_train=x_train,
                         x_test=x_test, y_train=y_train, y_test=y_test)
-    # h5f = h5py.File("batt.h5", "w")
-    # h5f.create_dataset('x', data=x)
-    # h5f.create_dataset('y', data=y)
-    # h5f.close()
-    # print(x[0].dtype, x.shape)
-    # for i in x:
-    #     if (i.dtype != 'float64'):
-    #         print(i.dtype, i.shape)

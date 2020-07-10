@@ -30,6 +30,19 @@ def get_data(data):
     return np.array(res)
 
 
+def get_data_pf(data):
+    res = []
+    for datum in data:
+        item = []
+        for cycle in np.unique(datum.Cycle_Index.to_numpy()):
+            item.append(datum[(datum.Cycle_Index == cycle)][(
+                datum.Step_Index == 3)]['Discharge_Capacity(Ah)'].max())
+        res.append(np.array(item))
+    return np.array(res)
+
+
 if __name__ == "__main__":
-    a = get_data(read_from_file())
-    np.save("data/batt.npy", a)
+    # a = get_data(read_from_file())
+    # np.save("data/batt.npy", a)
+    a = get_data_pf(read_from_file())
+    np.save("data/batt_pf.npy", a)
