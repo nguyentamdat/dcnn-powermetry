@@ -5,6 +5,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import *
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
 def load_data():
@@ -23,7 +24,26 @@ def load_data():
     return data_train, data_test
 
 
-data_train, data_test = load_data()
+def load_new_data():
+    data = np.load("data/batt_sam_fil.npz", allow_pickle=True)
+    data = data['x']
+    x = []
+    for i in data:
+        x.extend(i)
+    x = np.array(x)
+    print(x.shape)
+    a = np.array([np.array(i) for i in x[:, 0]])
+    b = np.array([np.array(i/3.0) for i in x[:, 1]])
+    x_train, x_test, y_train, y_test = train_test_split(a, b, test_size=0.3)
+    x_train = x_train[..., tf.newaxis]
+    x_test = x_test[..., tf.newaxis]
+    data_train = tf.data.Dataset.from_tensor_slices(
+        (x_train, y_train)).shuffle(1000).batch(128)
+    data_test = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(128)
+    return data_train, data_test
+
+
+data_train, data_test = load_new_data()
 
 
 class DCNN(Model):
@@ -136,6 +156,7 @@ train_mae_results = []
 test_rmse_results = []
 test_mae_results = []
 patience = 7
+best_er = 1000
 for epoch in range(EPOCH):
     train_rmse.reset_states()
     train_mae.reset_states()
@@ -150,6 +171,10 @@ for epoch in range(EPOCH):
         if patience <= 0:
             print("Early stop")
             break
+    if best_er > test_rmse.result().numpy():
+        model.save_weights('log/best_soh.h5')
+        best_er = test_rmse.result().numpy()
+        print("saved weights")
     train_rmse_results.append(train_rmse.result().numpy())
     train_mae_results.append(train_mae.result().numpy())
     test_rmse_results.append(test_rmse.result().numpy())
@@ -163,17 +188,13 @@ history = pd.DataFrame({'Train_RMSE': train_rmse_results, 'Test_RMSE': test_rmse
                         'Train_MAE': train_mae_results, 'Test_MAE': test_mae_results})
 history.to_excel('DCNN_LOG.xlsx')
 
-fig, axes = plt.subplots(4, sharex=True, figsize=(12, 8))
-fig.suptitle('Training Metrics')
+fig, axes = plt.subplots(figsize=(12, 8))
+fig.suptitle('Errors')
+axes.set_xlabel("Epoch", fontsize=14)
+line1 = axes.plot(train_rmse_results, label="train rmse")
+line2 = axes.plot(train_mae_results, dashes=[6, 2], label="train mae")
+line3 = axes.plot(test_rmse_results, label="test rmse")
+line4 = axes.plot(test_mae_results, dashes=[6, 2], label="test mae")
+axes.legend()
 
-axes[0].set_ylabel("RMSE", fontsize=14)
-axes[0].plot(train_rmse_results)
-
-axes[1].set_ylabel("MAE", fontsize=14)
-axes[1].set_xlabel("Epoch", fontsize=14)
-axes[1].plot(train_mae_results)
-axes[2].set_ylabel("Test RMSE", fontsize=14)
-axes[2].plot(test_rmse_results)
-axes[3].set_ylabel("Test MAE", fontsize=14)
-axes[3].plot(test_mae_results)
 plt.show()
